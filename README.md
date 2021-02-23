@@ -2,9 +2,9 @@
 ## Описание
 Логин сервер. Только логика касательная аутентификации и авторизации пользоватедя
 
-__Дэмку можно посмотреть__: 👉  [здесь](https://davidsulava.github.io/Demo_Anime_React_Front_End/) <br>( необходимо немного подождеть пока back-end выйдет из "idling state" ).
-
-__Front-end__ 👉 [тут]( https://github.com/DavidSulava/Demo_Anime_React_Front_End )
+- Back-end( data server ) 👉 [тут](https://github.com/DavidSulava/Demo_Anime_React_Back_End)
+- Клиент 👉 [тут](https://github.com/DavidSulava/Demo_Anime_React_Front_End)
+- Демка 👉 [тут](https://anime-server12.herokuapp.com/media) ( надо подождать пока выйдет из "idling state" ).
 
 
 
@@ -13,6 +13,7 @@ __Front-end__ 👉 [тут]( https://github.com/DavidSulava/Demo_Anime_React_Fro
 Node js:
     - Express
     - Mongoose
+    - Atlas
     - Jsonwebtoken
 
 ```
