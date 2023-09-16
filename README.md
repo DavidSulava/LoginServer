@@ -1,14 +1,14 @@
 
-## Описание
-Логин сервер. Только логика касательная аутентификации и авторизации пользоватедя
+## Description
+Login server. Deals solely with authentication and user authorization logic.
 
-- Back-end( data server ) 👉 [тут](https://github.com/DavidSulava/Demo_Anime_React_Back_End)
-- Клиент 👉 [тут](https://github.com/DavidSulava/Demo_Anime_React_Front_End)
-- Демка  👉 [тут](https://davidsulava.github.io/Demo_Anime_React_Front_End/) ( надо подождать пока выйдет из "idling state" ).
+- Back-end ( data server ) 👉 [тут](https://github.com/DavidSulava/Demo_Anime_React_Back_End)
+- Client 👉 [тут](https://github.com/DavidSulava/Demo_Anime_React_Front_End)
+- Demo  👉 [тут](https://davidsulava.github.io/Demo_Anime_React_Front_End/) ( please wait until it exits "idling state" ).
 
 
 
-#### Используемые технологии:
+#### Used libraries:
 ```
 Node js:
     - Express
