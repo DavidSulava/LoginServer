@@ -1,9 +1,8 @@
-
-const bcrypt        = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 const userValidator = require('../DB/validators/userValidator')
-const msg           = require('../customRespoce/msg');
-const User_scm      = require('../DB/models/user.model');
-const createError   = require('http-errors');
+const msg = require('../customRespoce/msg');
+const User_scm = require('../DB/models/user.model');
+const createError = require('http-errors');
 
 const {
     signAccessToken,
@@ -16,14 +15,14 @@ const {
 } = require("../helpers/helpers");
 
 module.exports = {
-    registerUser: async ( req, res, next ) => {
+    registerUser: async (req, res, next) => {
         try {
 
             // return res.json({ msg: process.env.MONGO_ATLAS_STR })
-            let userEmail             = req.fields.email     ? req.fields.email                             : '';
-            let firstName             = req.fields.firstName ? req.fields.firstName                         : '';
-            let lastName              = req.fields.lastName  ? req.fields.lastName                          : '';
-            let userPassword          = req.fields.password  ? req.fields.password                          : '';
+            let userEmail = req.fields.email ? req.fields.email : '';
+            let firstName = req.fields.firstName ? req.fields.firstName : '';
+            let lastName = req.fields.lastName ? req.fields.lastName : '';
+            let userPassword = req.fields.password ? req.fields.password : '';
             let password_confirmation = req.fields.password_confirmation ? req.fields.password_confirmation : '';
 
 
@@ -34,41 +33,41 @@ module.exports = {
                     msg: validateMessage
                 });
 
-            let check = await User_scm.findOne({ email: userEmail });
+            let check = await User_scm.findOne({email: userEmail});
 
-            if ( check ) return res.status(401).json({ error: msg.ru.auth.userExist });
+            if (check) return res.status(401).json({error: msg.ru.auth.userExist});
 
             //  ---------- [ variables for email authentication ] -------------
             let hostName = req.get('x-forwarded-host');
-            let cTime    = Date.now() + (1000 * 60 * 15);
-            let hash     = bcrypt.hashSync(`${ cTime }_${ userEmail }`, 8);
+            let cTime = Date.now() + (1000 * 60 * 15);
+            let hash = bcrypt.hashSync(`${cTime}_${userEmail}`, 8);
 
-            let link     = `${hostName}/email/authentication/${userEmail}/${encodeURIComponent(hash)}`;
+            let link = `${hostName}/email/authentication/${userEmail}/${encodeURIComponent(hash)}`;
 
 
             let userPrepared = {
-                email      : userEmail,
-                firstName  : firstName,
-                lastName   : lastName,
-                isVerified : false
+                email: userEmail,
+                firstName: firstName,
+                lastName: lastName,
+                isVerified: false
             }
 
             //--create user
             let user = new User_scm({
                 ...userPrepared,
-                password  : userPassword,
-                token     : hash,
-                timeToken : cTime
+                password: userPassword,
+                token: hash,
+                timeToken: cTime
             });
 
 
             let savedUser = await user.save();
 
-            if ( !savedUser ) throw createError.InternalServerError();
+            if (!savedUser) throw createError.InternalServerError();
 
-            let userPayload                 =  { ...userObject( user ), id: savedUser.id,  };
-            let { refreshToken }            =  await signRefreshToken( userPayload );
-            let { accessToken, expiresAt }  =  await signAccessToken( userPayload );
+            let userPayload = {...userObject(user), id: savedUser.id,};
+            let {refreshToken} = await signRefreshToken(userPayload);
+            let {accessToken, expiresAt} = await signAccessToken(userPayload);
 
 
             //  ---------- [ send email ] -------------
@@ -89,42 +88,40 @@ module.exports = {
             });
 
 
-
-        } catch (error) { next(error) }
-
+        } catch (error) {
+            next(error)
+        }
     },
-    login: async ( req, res, next )=>{
+    login: async (req, res, next) => {
         try {
-
-            let userEmail    = req.fields.email    ? req.fields.email    : '';
+            let userEmail = req.fields.email ? req.fields.email : '';
             let userPassword = req.fields.password ? req.fields.password : '';
 
 
-            if ( !userEmail || !userPassword ) return res.status(401).send({ error:  msg.ru.auth.badCredentials });
+            if (!userEmail || !userPassword) return res.status(401).send({error: msg.ru.auth.badCredentials});
 
 
-            let user = await User_scm.findOne({  email: userEmail });
+            let user = await User_scm.findOne({email: userEmail});
 
-            if (!user) return res.status(401).send({ error:  msg.ru.auth.badCredentials });
+            if (!user) return res.status(401).send({error: msg.ru.auth.badCredentials});
 
             user.comparePassword(userPassword, async (err, callBack) => {
+                if (err) return next(createError.InternalServerError());
 
-                if (err) return next( createError.InternalServerError() );
-
-                if ( !callBack )
-                    return res.status(401).send({ error:  msg.ru.auth.badCredentials });
+                if (!callBack)
+                    return res.status(401).send({error: msg.ru.auth.badCredentials});
 
 
-                let userSaved  = await user.save();
+                let userSaved = await user.save();
 
                 // error for testing purposes
-                if ( !userSaved )
+                if (!userSaved)
                     return next(createError.InternalServerError());
 
                 let userPrepared = userObject(user)
 
-                let { refreshToken }           = await signRefreshToken( userPrepared );
-                let { accessToken , expiresAt} = await signAccessToken( userPrepared );
+                let {refreshToken} = await signRefreshToken(userPrepared);
+                let {accessToken, expiresAt} = await signAccessToken(userPrepared);
 
                 res.cookie("refreshToken", refreshToken, cookieSettings());
 
@@ -132,89 +129,85 @@ module.exports = {
                     success: msg.ru.auth.success,
                     user: {
                         ...userPrepared,
-                        accessToken : accessToken,
+                        accessToken: accessToken,
                         accessTokenExpiresAt: expiresAt,
                     },
 
                 });
 
             })
-
-
-        } catch (error) { next(error) }
+        } catch (error) {
+            next(error)
+        }
     },
-    logOut: async ( req, res, next )=>{
+    logOut: async (req, res, next) => {
         try {
-
-            if( !req.body.email ) throw createError.Unauthorized({ msg: msg.ru.badCredentials });
+            if (!req.body.email) throw createError.Unauthorized({msg: msg.ru.badCredentials});
 
             let userEmail = req.body.email;
 
-            let user = await User_scm.findOne({ email: userEmail });
+            let user = await User_scm.findOne({email: userEmail});
 
-            if ( user ) {
+            if (user) {
 
-                if( !req.cookies['refreshToken'] ) throw createError.BadRequest();
+                if (!req.cookies['refreshToken']) throw createError.BadRequest();
 
-                let refreshToken    = req.cookies["refreshToken"];
-                let refTokenPayload = await verifyRefreshToken( refreshToken );
+                let refreshToken = req.cookies["refreshToken"];
+                let refTokenPayload = await verifyRefreshToken(refreshToken);
 
-                await revokeRefreshToken( refTokenPayload.id );
+                await revokeRefreshToken(refTokenPayload.id);
             }
-
             return res.status(200).send({
                 user: null
             });
-
-        } catch (error) { next(error) }
+        } catch (error) {
+            next(error)
+        }
     },
-    updatePassword: async ( req, res, next )=>{
-
-        try{
-            let oldUserPassword = req.fields.password     ? req.fields.password     : '';
+    updatePassword: async (req, res, next) => {
+        try {
+            let oldUserPassword = req.fields.password ? req.fields.password : '';
             let newUserPassword = req.fields.new_password ? req.fields.new_password : '';
-            let userEmail       = req.fields.currentEmail;
+            let userEmail = req.fields.currentEmail;
 
             // -----------[ Change the Password ]---------------
-            if ( !oldUserPassword || !newUserPassword )
-                return res.status(401).send({ erPassword: msg.ru.auth.passwordMismatch });
+            if (!oldUserPassword || !newUserPassword)
+                return res.status(401).send({erPassword: msg.ru.auth.passwordMismatch});
 
 
-            if( !userEmail ) throw createError.Unauthorized({ msg: msg.ru.badCredentials })
+            if (!userEmail) throw createError.Unauthorized({msg: msg.ru.badCredentials})
 
-            let user = await User_scm.findOne({ email: userEmail });
+            let user = await User_scm.findOne({email: userEmail});
 
-            if ( !user ) return res.status(401).send({ error: msg.ru.auth.badCredentials });
+            if (!user) return res.status(401).send({error: msg.ru.auth.badCredentials});
 
 
             user.comparePassword(oldUserPassword, async (err, callBack) => {
-
                 if (err) throw createError.InternalServerError();
-
-                if ( !callBack ) {
-                    return res.status(401).send({ erPassword: msg.ru.auth.wrongPassword });
+                if (!callBack) {
+                    return res.status(401).send({erPassword: msg.ru.auth.wrongPassword});
                 }
 
                 user.password = newUserPassword;
 
                 var newPasSaved = await user.save()
 
-                if (!newPasSaved)  throw createError.InternalServerError();
-
+                if (!newPasSaved) throw createError.InternalServerError();
 
                 return res.status(200).send({
-                   msg:{ passChanged: msg.ru.auth.passChanged }
+                    msg: {passChanged: msg.ru.auth.passChanged}
                 });
             });
-        } catch (error) { next(error) }
+        } catch (error) {
+            next(error)
+        }
     },
-    updateUser: async ( req, res, next )=>{
-
-        try{
-            let userEmail    = req.fields.email     ? req.fields.email     : '';
-            let firstName    = req.fields.firstName ? req.fields.firstName : '';
-            let lastName     = req.fields.lastName  ? req.fields.lastName  : '';
-            let userName     = req.fields.name      ? req.fields.name      : '';
+    updateUser: async (req, res, next) => {
+        try {
+            let userEmail = req.fields.email ? req.fields.email : '';
+            let firstName = req.fields.firstName ? req.fields.firstName : '';
+            let lastName = req.fields.lastName ? req.fields.lastName : '';
+            let userName = req.fields.name ? req.fields.name : '';
             let userEmailOld = req.fields.currentEmail || '';
 
             let validateMessage = userValidator(userEmail);
@@ -224,13 +217,12 @@ module.exports = {
                 });
 
             // -----------[ Check if email not exists. Update Email ]--------------
-            if ( userEmail != userEmailOld ) {
-
+            if (userEmail != userEmailOld) {
                 let checkEmail = User_scm.find({
                     email: userEmail
                 })
 
-                if ( checkEmail )
+                if (checkEmail)
                     return res.status(401).send({
                         msg: {
                             emailErr: 'A user with such email already exists!'
@@ -243,65 +235,62 @@ module.exports = {
                 email: userEmailOld
             });
 
-            if ( !user ) return res.status(401).send({ error: msg.ru.auth.badCredentials });
+            if (!user) return res.status(401).send({error: msg.ru.auth.badCredentials});
 
-            user.email      = userEmail;
-            user.isVerified = userEmail != userEmailOld ? false: user.isVerified;
-            user.firstName  = firstName;
-            user.lastName   = lastName;
-            user.name       = userName;
+            user.email = userEmail;
+            user.isVerified = userEmail != userEmailOld ? false : user.isVerified;
+            user.firstName = firstName;
+            user.lastName = lastName;
+            user.name = userName;
 
             let isSaved = await user.save();
-            if ( isSaved ) {
-
+            if (isSaved) {
                 userPrepared = userObject(user);
-
                 return res.status(200).send({
-                    msg : { userUpdated: msg.ru.auth.userUpdated },
-                    user: { ...userPrepared },
+                    msg: {userUpdated: msg.ru.auth.userUpdated},
+                    user: {...userPrepared},
                 });
             }
-        }catch(error) { next(error) }
+        } catch (error) {
+            next(error)
+        }
     },
-    updateAvatar: async( req, res, next )=>{
+    updateAvatar: async (req, res, next) => {
         try {
-
-            if( !req.fields.img ) return res.status(201).send({ msg: { imgError: 'no image selected'} });
+            if (!req.fields.img) return res.status(201).send({msg: {imgError: 'no image selected'}});
 
             let userAvatar = req.fields.img ? req.fields.img : '';
-            let userEmail  = req.accessTokenPayload.email;
+            let userEmail = req.accessTokenPayload.email;
 
             let user = await User_scm.findOne({
                 email: userEmail
             });
 
-            if ( !user ) return res.status(401).send({ error: msg.ru.auth.badCredentials });
+            if (!user) return res.status(401).send({error: msg.ru.auth.badCredentials});
 
             user.img = userAvatar;
             let userSaved = await user.save();
 
-            if ( userSaved ) {
-
+            if (userSaved) {
                 let userPrepared = userObject(userSaved);
 
                 return res.status(200).send({
-                    msg : { avatarUpdated: 'Avatar successfully updated !' },
-                    user: { ...userPrepared },
+                    msg: {avatarUpdated: 'Avatar successfully updated !'},
+                    user: {...userPrepared},
                 });
             }
-
             next();
-        } catch (error) { next(error) }
-
+        } catch (error) {
+            next(error)
+        }
     },
-    emailConfirm: async ( req, res, next )=> {
-
-        try{
+    emailConfirm: async (req, res, next) => {
+        try {
             let token = req.fields.token ? decodeURIComponent(req.fields.token) : '';
             let email = req.fields.email ? req.fields.email : '';
             let cTime = Date.now();
 
-            if( !email || !token )
+            if (!email || !token)
                 return res.status(401).send({
                     msg: {
                         errorCred: msg.ru.auth.badCredentials
@@ -313,13 +302,12 @@ module.exports = {
                 email: email
             });
 
-            if( user.isVerified ) return res.status(200).send({
-                msg : { emailConfirmed : msg.ru.email.emailConfirmed },
-                user: { ...userObject(user) }
+            if (user.isVerified) return res.status(200).send({
+                msg: {emailConfirmed: msg.ru.email.emailConfirmed},
+                user: {...userObject(user)}
             })
 
-
-            if ( !user || user.token != token || user.email != email ||  cTime > user.timeToken )
+            if (!user || user.token != token || user.email != email || cTime > user.timeToken)
                 return res.status(401).send({
                     error: msg.ru.auth.badCredentials
                 });
@@ -327,42 +315,39 @@ module.exports = {
             user.isVerified = true;
             let isSaved = await user.save();
 
-            if ( !isSaved )
+            if (!isSaved)
                 return res.status(401).send({
                     msg: {
                         timeErr: msg.ru.email.confEr
                     }
                 });
 
-
             return res.status(200).send({
-                msg : {
-                    emailConfirmed : msg.ru.email.emailConfirmed
+                msg: {
+                    emailConfirmed: msg.ru.email.emailConfirmed
                 },
                 user: {
                     ...userObject(user),
                 }
             });
-
-        }catch(error){ next(error) }
+        } catch (error) {
+            next(error)
+        }
     },
-    emailVerify: async ( req, res, next )=> {
-
-        try{
+    emailVerify: async (req, res, next) => {
+        try {
             let userEmail = req.fields.email ? req.fields.email : '';
 
-            let validateMessage = userValidator( userEmail );
+            let validateMessage = userValidator(userEmail);
 
             if (validateMessage)
                 return res.status(401).json({
                     msg: validateMessage
                 });
-
             // -----------[ Check and Update Email ]--------------
+            let user = await User_scm.findOne({email: userEmail})
 
-            let user = await User_scm.findOne({ email: userEmail })
-
-            if ( !user )
+            if (!user)
                 return res.status(401).send({
                     msg: {
                         emailErr: msg.ru.auth.badCredentials
@@ -370,15 +355,13 @@ module.exports = {
                 });
 
             let hostName = req.get('origin');
-            let cTime    = Date.now() + (1000 * 60 * 15);
-            let hash     = bcrypt.hashSync(`${ cTime }_${ userEmail }`, 8);
-            let link     = `${hostName}/email/authentication/${userEmail}/${encodeURIComponent(hash)}`;
-            let html     = `<div><p>Please click the link below to confirm your email !</p> <a href='${link}'>Click Here</a></div>`;
-
+            let cTime = Date.now() + (1000 * 60 * 15);
+            let hash = bcrypt.hashSync(`${cTime}_${userEmail}`, 8);
+            let link = `${hostName}/email/authentication/${userEmail}/${encodeURIComponent(hash)}`;
+            let html = `<div><p>Please click the link below to confirm your email !</p> <a href='${link}'>Click Here</a></div>`;
             // --- change data in database
-
-            user.token      = hash;
-            user.timeToken  = cTime;
+            user.token = hash;
+            user.timeToken = cTime;
             user.isVerified = false;
 
             let dataSaved = await user.save();
@@ -386,18 +369,17 @@ module.exports = {
             if (dataSaved) {
                 //  ---------- [ send email confirmation link ] -------------
                 await sendEmail(hostName, userEmail, 'email confirmation', html).catch(console.error);
-
                 userPrepared = userObject(user)
-
-
                 return res.status(200).send({
-                    msg: { verLinkSend: `Verification link has been sent to ${ user.email }` },
+                    msg: {verLinkSend: `Verification link has been sent to ${user.email}`},
                     user: {
                         ...userPrepared,
                     }
                 });
             }
-        }catch(error){ next(error) }
+        } catch (error) {
+            next(error)
+        }
 
     },
 }
